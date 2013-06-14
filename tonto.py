@@ -56,7 +56,7 @@ class TontoBot(irc.bot.SingleServerIRCBot):
 				with open(
 				picke.dump(self.urlhist):
 			except:
-				logging.error("Failed with: %s" % line)
+				logging.exception("Failed with: %s" % line)
 				self._best_effort_send(connection, random.choice(self.FAIL_MSGS))
 
 def get_args():
