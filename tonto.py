@@ -15,6 +15,7 @@ import random
 import pickle
 import atexit
 import configparser
+import time
 
 DEFAULTS = {
 		'server': 'irc.freenode.net',
@@ -65,9 +66,25 @@ class TontoBot(irc.bot.SingleServerIRCBot):
 		return fd.read(maxbytes)
 
 	def masca(self):
-		return random.choice(['rant rant rant', 'al chile me caga', 'estás todo mal',
-			'me emputa', '¡Viva la revolución!', 'izq. izq', 'EZLN, etc.', 'es culpa de fecal',
-			'SeVeTodoFeo', 'no tiene apuntadores'])
+		openers = ('en serio que', 'neta que', 'al chile', '')
+		haters = ('me caga', 'me re-caga', 'me molesta un chingo', 'está todo mal', 'me emputa', 'está todo gacho', 'es lo más ojete de la vida', 'es bien tonto')
+		closers = ('que fecal fue presidente', 'que no uses C', 'que uses camelCase', 'que existas', 'que un lenguaje no tenga apuntadores', 'que amlo perdió', '')
+		standalones = ('Viva el EZLN', '¬¬', '¡Viva la revolución!', 'Estás todo gacho', 'Vamos por cheve')
+
+		composed_len = len(openers) * len(haters) * len(closers)
+		totlen = composed_len + len(standalones)
+
+		logging.info('totlen = %d' % totlen)
+		logging.info('composed_len = %d' % composed_len)
+		# Give equal weight to standalones and composed. This should make standalones a relatively rare occurrence
+		if random.randint(0, totlen) < composed_len:
+			now = time.clock()
+			quote = ' '.join(random.choice(list(itertools.product(openers, haters, closers)))).strip()
+			end = time.clock()
+			logging.info('Took %d seconds to generate a quote' % ( now - end))
+			return quote
+		else:
+			return random.choice(standalones)
 
 	def rtfm(self, line):
 		argv = line.split()
