@@ -3,6 +3,7 @@ import sys
 import subprocess
 import re
 import os
+import os.path
 import argparse
 import itertools
 import logging
@@ -13,6 +14,15 @@ import irc.client
 import random
 import pickle
 import atexit
+import configparser
+
+DEFAULTS = {
+		'server': 'irc.freenode.net',
+		'nickname': 'tontobot',
+		'channel': '#gultec',
+		'realname': 'Tonto Bot',
+		'port': 6667
+		}
 
 def get_urls(s):
 	return re.findall('http[s]?://(?:[a-zA-Z]|[0-9]|[$-_@.&+]|[!*\(\),]|(?:%[0-9a-fA-F][0-9a-fA-F]))+', s)
@@ -25,7 +35,7 @@ class TontoBot(irc.bot.SingleServerIRCBot):
 		irc.bot.SingleServerIRCBot.__init__(self, [serverspec], nickname, realname)
 		self.channel = channel
 		self.seen_urlpath = seen_urlpath
-		logging.info("channel= %s" % channel)
+		logging.info("nickname=[%s] realname=[%s] channel=[%s]" % (nickname, realname, channel))
 		try:
 			with open(seen_urlpath, 'rb') as f:
 				self.urlhist = pickle.load(f)
@@ -34,7 +44,7 @@ class TontoBot(irc.bot.SingleServerIRCBot):
 		atexit.register(self._dumphist)
 
 	def on_welcome(self, connection, event):
-		logging.info("joining %s", self.channel)
+		logging.debug("joining %s", self.channel)
 		connection.join(self.channel)
 
 	def _best_effort_send(self, connection, msg):
@@ -119,21 +129,30 @@ class TontoBot(irc.bot.SingleServerIRCBot):
 
 def get_args():
 	parser = argparse.ArgumentParser()
-	parser.add_argument('--server', default='irc.freenode.net')
-	parser.add_argument('--nickname', default='tontobot')
-	parser.add_argument('--channel', default='#gultec')
-	parser.add_argument('--realname', default='Tonto Bot')
-	parser.add_argument('-p', '--port', default=6667, type=int)
+	parser.add_argument('--server')
+	parser.add_argument('--nickname')
+	parser.add_argument('--channel')
+	parser.add_argument('--realname')
+	parser.add_argument('-p', '--port', type=int)
 	return parser.parse_args()
 
 
 def main():
 	logging.basicConfig(level=logging.INFO)
+	config = configparser.ConfigParser()
+	config.read(['./tontorc', os.path.expanduser('~/.tontorc')])
 	args = get_args()
+
+	server = args.server or config['net'].get('server', DEFAULTS['server'])
+	nickname = args.nickname or config['net'].get('nickname', DEFAULTS['nickname'])
+	channel = args.channel or config['net'].get('channel', DEFAULTS['channel'])
+	realname = args.realname or config['net'].get('realname', DEFAULTS['realname'])
+	port = args.port or config['net'].getint('port', DEFAULTS['port'])
+
 	# Do not try to decode lines
 	irc.buffer.DecodingLineBuffer.errors = 'replace'
-	serverspec = irc.bot.ServerSpec(args.server, args.port)
-	bot = TontoBot(serverspec, args.channel, args.nickname, args.realname)
+	serverspec = irc.bot.ServerSpec(server, port)
+	bot = TontoBot(serverspec, channel, nickname, realname)
 	try:
 		c = bot.start()
 	except irc.client.ServerConnectionError:

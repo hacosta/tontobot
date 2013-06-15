@@ -1,0 +1,6 @@
+[net]
+server = irc.freenode.net
+nickname = tontobot
+channel = #gultec
+realname = Tonto Bot
+port = 6667
