@@ -29,6 +29,7 @@ def get_urls(s):
 
 class TontoBot(irc.bot.SingleServerIRCBot):
 	FETCH_MAX = 20 * 1024
+	MSG_MAX = 140
 	FAIL_MSGS = [':(', '):', '?', 'WAT', 'No pos no', 'link no worky', 'chupa limon']
 
 	def __init__(self, serverspec, channel, nickname, realname, seen_urlpath='./seenurls.pickle'):
@@ -47,11 +48,9 @@ class TontoBot(irc.bot.SingleServerIRCBot):
 		logging.debug("joining %s", self.channel)
 		connection.join(self.channel)
 
-	def _best_effort_send(self, connection, msg):
-		try:
-			connection.privmsg(self.channel, random.choice(self.FAIL_MSGS))
-		except:
-			pass
+	def _sendmsg(self, connection, msg):
+		"""Convenience method to send a msg. Truncates msg to MSG_MAX chars"""
+		connection.privmsg(self.channel, msg[MSG_MAX:])
 
 	def _dumphist(self):
 		try:
@@ -119,13 +118,13 @@ class TontoBot(irc.bot.SingleServerIRCBot):
 				root = lxml.html.fromstring(self.urlopen(u))
 				title = root.find('.//title').text
 				if u in self.urlhist:
-					connection.privmsg(self.channel, "[repost] " + title)
+					self._sendmsg(connection, '[repost] ' + title)
 				else:
-					connection.privmsg(self.channel, title)
+					self._sendmsg(connection, title)
 					self.urlhist[u] = title
 			except:
 				logging.exception("Failed with: %s" % line)
-				self._best_effort_send(connection, random.choice(self.FAIL_MSGS))
+				self._sendmsg(connection, random.choice(self.FAIL_MSGS))
 
 def get_args():
 	parser = argparse.ArgumentParser()
