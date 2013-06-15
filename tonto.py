@@ -51,7 +51,11 @@ class TontoBot(irc.bot.SingleServerIRCBot):
 
 	def _sendmsg(self, connection, msg):
 		"""Convenience method to send a msg. Truncates msg to MSG_MAX chars"""
-		connection.privmsg(self.channel, msg[MSG_MAX:])
+		logging.info("msg: %s" % msg)
+		if len(msg) > 140:
+			msg = msg[self.MSG_MAX:]
+			logging.info("truncated msg: %s" % msg)
+		connection.privmsg(self.channel, msg)
 
 	def _dumphist(self):
 		try:
@@ -123,11 +127,11 @@ class TontoBot(irc.bot.SingleServerIRCBot):
 		line = event.arguments[0]
 		try:
 			if line.startswith('!rtfm'):
-				connection.privmsg(self.channel, self.rtfm(line))
+				self._sendmsg(connection, self.rtfm(line))
 			elif line.startswith('!masca'):
-				connection.privmsg(self.channel, self.masca())
+				self._sendmsg(connection, self.masca())
 			elif line.startswith('ping'):
-				connection.privmsg(self.channel, 'pong')
+				self._sendmsg(connection, 'pong')
 		except:
 			logging.exception("Failed with: %s" % line)
 		for u in get_urls(line):
