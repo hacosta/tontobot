@@ -1,6 +1,8 @@
 #!/usr/bin/python3
 import sys
+import subprocess
 import re
+import os
 import argparse
 import itertools
 import logging
@@ -48,13 +50,55 @@ class TontoBot(irc.bot.SingleServerIRCBot):
 		except:
 			logging.exception("Oh noes, history is lost")
 
+	def urlopen(self, url, maxbytes=FETCH_MAX):
+		req = urllib.request.Request(url, headers={'User-agent': 'Mozilla/5.0 (X11; U; Linux i686) Gecko/20071127 Firefox/2.0.0.11'})
+		fd = urllib.request.urlopen(req)
+		return fd.read(maxbytes)
+
+	def rtfm(self, line):
+		argv = line.split()
+		if len(argv) == 3:
+			cmd = argv[2].strip()
+			section = argv[1]
+		elif len(line.split()) == 2:
+			cmd = argv[1].strip()
+			section = None
+		else:
+			raise Exception("format: !rtfm [section] cmd")
+
+		if not re.match('^[a-zA-Z_-]+$', cmd):
+			logging.error("re.match rtfm: %s" % cmd)
+			raise Exception("Funky commands not supported")
+
+		if section:
+			stdout = subprocess.check_output(['man', '--pager', 'cat', str(section), cmd])
+		else:
+			stdout = subprocess.check_output(['man', '--pager', 'cat', cmd])
+		stdout = stdout.decode('utf-8')
+
+		if stdout:
+			seen_description = False
+			for line in stdout.splitlines():
+				line = line.strip()
+				if seen_description:
+					return line.split('.')[0]
+				if line.endswith('DESCRIPTION'):
+					seen_description = True
+			raise Exception("Unable to parse manpage")
+
+		raise Exception("No man page found")
+
 	def on_pubmsg(self, connection, event):
 		line = event.arguments[0]
+		try:
+			if line.startswith('!rtfm'):
+				msg = self.rtfm(line)
+				connection.privmsg(self.channel, msg)
+		except:
+			logging.exception("Failed with: %s" % line)
 		for u in get_urls(line):
 			try:
-				req = urllib.request.Request(u, headers={'User-agent': 'Mozilla/5.0 (X11; U; Linux i686) Gecko/20071127 Firefox/2.0.0.11'})
-				fd = urllib.request.urlopen(req)
-				root = lxml.html.fromstring(fd.read(self.FETCH_MAX))
+				root = lxml.html.fromstring(self.urlopen(u))
 				title = root.find('.//title').text
 				if u in self.urlhist:
 					connection.privmsg(self.channel, "[repost] " + title)
