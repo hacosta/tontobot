@@ -55,6 +55,11 @@ class TontoBot(irc.bot.SingleServerIRCBot):
 		fd = urllib.request.urlopen(req)
 		return fd.read(maxbytes)
 
+	def masca(self):
+		return random.choice(['rant rant rant', 'al chile me caga', 'estás todo mal',
+			'me emputa', '¡Viva la revolución!', 'izq. izq', 'EZLN, etc.', 'es culpa de fecal',
+			'SeVeTodoFeo', 'no tiene apuntadores'])
+
 	def rtfm(self, line):
 		argv = line.split()
 		if len(argv) == 3:
@@ -92,8 +97,9 @@ class TontoBot(irc.bot.SingleServerIRCBot):
 		line = event.arguments[0]
 		try:
 			if line.startswith('!rtfm'):
-				msg = self.rtfm(line)
-				connection.privmsg(self.channel, msg)
+				connection.privmsg(self.channel, self.rtfm(line))
+			elif line.startswith('!masca'):
+				connection.privmsg(self.channel, self.masca())
 		except:
 			logging.exception("Failed with: %s" % line)
 		for u in get_urls(line):
