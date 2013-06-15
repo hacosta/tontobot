@@ -100,6 +100,8 @@ class TontoBot(irc.bot.SingleServerIRCBot):
 				connection.privmsg(self.channel, self.rtfm(line))
 			elif line.startswith('!masca'):
 				connection.privmsg(self.channel, self.masca())
+			elif line.startswith('ping'):
+				connection.privmsg(self.channel, 'pong')
 		except:
 			logging.exception("Failed with: %s" % line)
 		for u in get_urls(line):
