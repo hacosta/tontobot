@@ -95,7 +95,7 @@ class TontoBot(irc.bot.SingleServerIRCBot):
 		if len(argv) == 3:
 			cmd = argv[2].strip()
 			section = argv[1]
-		elif len(line.split()) == 2:
+		elif len(argv) == 2:
 			cmd = argv[1].strip()
 			section = None
 		else:
