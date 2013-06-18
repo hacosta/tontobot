@@ -51,6 +51,7 @@ class TontoBot(irc.bot.SingleServerIRCBot):
 
 	def _sendmsg(self, connection, msg):
 		"""Convenience method to send a msg. Truncates msg to MSG_MAX chars"""
+		msg = msg.replace('\n', ' ')
 		logging.info("msg: %s" % msg)
 		if len(msg) > 140:
 			msg = msg[self.MSG_MAX:]
