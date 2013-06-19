@@ -137,6 +137,9 @@ class TontoBot(irc.bot.SingleServerIRCBot):
 			logging.exception("Failed with: %s" % line)
 		for u in get_urls(line):
 			try:
+				if u.endswith(('.jpg', '.png', '.git', '.bmp', '.pdf')):
+					logging.info('not a webpage, skipping')
+					continue
 				root = lxml.html.fromstring(self.urlopen(u))
 				title = root.find('.//title').text
 				if u in self.urlhist:
