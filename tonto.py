@@ -30,6 +30,7 @@ def get_urls(s):
 
 class TontoBot(irc.bot.SingleServerIRCBot):
 	FETCH_MAX = 20 * 1024
+	URL_MAXLEN = 60 # If url is longer than this, tontobot will provide a tinified version of the url
 	MSG_MAX = 140
 	FAIL_MSGS = [':(', '):', '?', 'WAT', 'No pos no', 'link no worky', 'chupa limon']
 
@@ -69,6 +70,9 @@ class TontoBot(irc.bot.SingleServerIRCBot):
 		req = urllib.request.Request(url, headers={'User-agent': 'Mozilla/5.0 (X11; U; Linux i686) Gecko/20071127 Firefox/2.0.0.11'})
 		fd = urllib.request.urlopen(req)
 		return fd.read(maxbytes)
+
+	def tinify(self, url):
+		return self.urlopen('http://tinyurl.com/api-create.php?url=%s' % url)
 
 	def masca(self):
 		openers = ('en serio que', 'neta que', 'al chile', '')
@@ -136,17 +140,21 @@ class TontoBot(irc.bot.SingleServerIRCBot):
 		except:
 			logging.exception("Failed with: %s" % line)
 		for u in get_urls(line):
+			tinyurl = ''
+			repost = ''
 			try:
 				if u.endswith(('.jpg', '.png', '.git', '.bmp', '.pdf')):
 					logging.info('not a webpage, skipping')
 					continue
 				root = lxml.html.fromstring(self.urlopen(u))
 				title = root.find('.//title').text
+				if len(u) > self.URL_MAXLEN:
+					tinyurl = '[%s]' % self.tinify(u).decode('utf-8')
 				if u in self.urlhist:
-					self._sendmsg(connection, '[repost] ' + title)
+					repost = '[repost]'
 				else:
-					self._sendmsg(connection, title)
 					self.urlhist[u] = title
+				self._sendmsg(connection, '%s %s %s' % (repost, tinyurl, title))
 			except:
 				logging.exception("Failed with: %s" % line)
 				self._sendmsg(connection, random.choice(self.FAIL_MSGS))
