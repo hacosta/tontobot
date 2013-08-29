@@ -16,6 +16,7 @@ import pickle
 import atexit
 import configparser
 import time
+import collections
 
 DEFAULTS = {
 		'server': 'irc.freenode.net',
@@ -140,21 +141,21 @@ class TontoBot(irc.bot.SingleServerIRCBot):
 		except:
 			logging.exception("Failed with: %s" % line)
 		for u in get_urls(line):
-			tinyurl = ''
-			repost = ''
+			msg = collections.deque()
 			try:
 				if u.endswith(('.jpg', '.png', '.git', '.bmp', '.pdf')):
 					logging.info('not a webpage, skipping')
 					continue
 				root = lxml.html.fromstring(self.urlopen(u))
 				title = root.find('.//title').text
-				if len(u) > self.URL_MAXLEN:
-					tinyurl = '[%s]' % self.tinify(u).decode('utf-8')
 				if u in self.urlhist:
-					repost = '[repost]'
+					msg.append('[repost]')
 				else:
 					self.urlhist[u] = title
-				self._sendmsg(connection, '%s %s %s' % (repost, tinyurl, title))
+				if len(u) > self.URL_MAXLEN:
+					msg.append('[%s]' % self.tinify(u))
+				msg.append(title)
+				self._sendmsg(connection, ' '.join(msg))
 			except:
 				logging.exception("Failed with: %s" % line)
 				self._sendmsg(connection, random.choice(self.FAIL_MSGS))
