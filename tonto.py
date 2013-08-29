@@ -72,7 +72,7 @@ class TontoBot(irc.bot.SingleServerIRCBot):
 		return fd.read(maxbytes)
 
 	def tinify(self, url):
-		return self.urlopen('http://tinyurl.com/api-create.php?url=%s' % url)
+		return self.urlopen('http://tinyurl.com/api-create.php?url=%s' % url).decode('utf-8')
 
 	def masca(self):
 		openers = ('en serio que', 'neta que', 'al chile', '')
