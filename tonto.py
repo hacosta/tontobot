@@ -56,7 +56,7 @@ class TontoBot(irc.bot.SingleServerIRCBot):
 		msg = msg.replace('\n', ' ')
 		logging.info("msg: %s" % msg)
 		if len(msg) > 140:
-			msg = msg[self.MSG_MAX:]
+			msg = msg[:self.MSG_MAX]
 			logging.info("truncated msg: %s" % msg)
 		connection.privmsg(self.channel, msg)
 
