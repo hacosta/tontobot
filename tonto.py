@@ -191,8 +191,8 @@ def main():
 	try:
 		c = bot.start()
 	except irc.client.ServerConnectionError:
-		log.error((sys.exc_info()[1]))
-		raise SystemExit(1)
+		logging.error((sys.exc_info()[1]))
+		sys.exit(1)
 
 if __name__ == '__main__':
 	main()
