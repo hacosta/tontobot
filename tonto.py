@@ -44,7 +44,7 @@ class TontoBot(irc.bot.SingleServerIRCBot):
 		self.channel = channel
 		logging.info("nickname=[%s] realname=[%s] channel=[%s]" % (nickname, realname, channel))
 		try:
-			self.sqlcon = sqlite3.connect('./seenurls.db')
+			self.sqlcon = sqlite3.connect(dbpath)
 			self.sqlcon.row_factory = sqlite3.Row
 			self.sqlcur = self.sqlcon.cursor()
 			self.sqlcon.execute('CREATE TABLE IF NOT EXISTS ' + self.URL_TABLE)
