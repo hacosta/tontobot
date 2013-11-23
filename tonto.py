@@ -12,8 +12,7 @@ import lxml.html
 import irc.bot
 import irc.client
 import random
-import pickle
-import atexit
+import sqlite3
 import configparser
 import time
 import collections
@@ -34,19 +33,25 @@ class TontoBot(irc.bot.SingleServerIRCBot):
 	URL_MAXLEN = 60 # If url is longer than this, tontobot will provide a tinified version of the url
 	MSG_MAX = 140
 	FAIL_MSGS = [':(', '):', '?', 'WAT', 'No pos no', 'link no worky', 'chupa limon']
+	URL_TABLE = '''urls (
+					url			TEXT PRIMARY KEY	NOT NULL,
+					title		TEXT				NOT NULL,
+					user		TEXT				NOT NULL,
+					time		TEXT				NOT NULL);'''
 
-	def __init__(self, serverspec, channel, nickname, realname, seen_urlpath='./seenurls.pickle'):
+	def __init__(self, serverspec, channel, nickname, realname, dbpath='./seenurls.db'):
 		irc.bot.SingleServerIRCBot.__init__(self, [serverspec], nickname, realname)
 		self.channel = channel
-		self.seen_urlpath = seen_urlpath
 		logging.info("nickname=[%s] realname=[%s] channel=[%s]" % (nickname, realname, channel))
 		try:
-			with open(seen_urlpath, 'rb') as f:
-				self.urlhist = pickle.load(f)
+			self.sqlcon = sqlite3.connect('./seenurls.db')
+			self.sqlcon.row_factory = sqlite3.Row
+			self.sqlcur = self.sqlcon.cursor()
+			self.sqlcon.execute('CREATE TABLE IF NOT EXISTS ' + self.URL_TABLE)
 		except:
-			self.urlhist = {}
-		atexit.register(self._dumphist)
-
+			logging.exception("Unable to open URL database!")
+			sys.exit(1)
+	
 	def on_welcome(self, connection, event):
 		logging.debug("joining %s", self.channel)
 		connection.join(self.channel)
@@ -59,13 +64,6 @@ class TontoBot(irc.bot.SingleServerIRCBot):
 			msg = msg[:self.MSG_MAX]
 			logging.info("truncated msg: %s" % msg)
 		connection.privmsg(self.channel, msg)
-
-	def _dumphist(self):
-		try:
-			with open(self.seen_urlpath, 'wb') as f:
-				pickle.dump(self.urlhist, f)
-		except:
-			logging.exception("Oh noes, history is lost")
 
 	def urlopen(self, url, maxbytes=FETCH_MAX):
 		req = urllib.request.Request(url, headers={'User-agent': 'Mozilla/5.0 (X11; U; Linux i686) Gecko/20071127 Firefox/2.0.0.11'})
@@ -131,6 +129,7 @@ class TontoBot(irc.bot.SingleServerIRCBot):
 
 	def on_pubmsg(self, connection, event):
 		line = event.arguments[0]
+		user = event.source.split('!')[0]
 		try:
 			if line.startswith('!rtfm'):
 				self._sendmsg(connection, self.rtfm(line))
@@ -140,20 +139,23 @@ class TontoBot(irc.bot.SingleServerIRCBot):
 				self._sendmsg(connection, 'pong')
 		except:
 			logging.exception("Failed with: %s" % line)
-		for u in get_urls(line):
+		for url in get_urls(line):
 			msg = collections.deque()
 			try:
-				if u.endswith(('.jpg', '.png', '.git', '.bmp', '.pdf')):
+				if url.endswith(('.jpg', '.png', '.git', '.bmp', '.pdf')):
 					logging.info('not a webpage, skipping')
 					continue
-				root = lxml.html.fromstring(self.urlopen(u))
+				root = lxml.html.fromstring(self.urlopen(url))
 				title = root.find('.//title').text
-				if u in self.urlhist:
-					msg.append('[repost]')
+				self.sqlcur.execute('SELECT user FROM urls WHERE url = ?', (url,))
+				sqlrow = self.sqlcur.fetchone()
+				if sqlrow is not None:
+					msg.append('[repost: %s]' % sqlrow['user'])
 				else:
-					self.urlhist[u] = title
-				if len(u) > self.URL_MAXLEN:
-					msg.append('[%s]' % self.tinify(u))
+					self.sqlcur.execute('INSERT INTO urls VALUES (?,?,?,?)', (url, title, user, time.time(),))
+					self.sqlcon.commit()
+				if len(url) > self.URL_MAXLEN:
+					msg.append('[%s]' % self.tinify(url))
 				msg.append(title)
 				self._sendmsg(connection, ' '.join(msg))
 			except:
