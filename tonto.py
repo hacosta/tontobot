@@ -13,7 +13,6 @@ import irc.bot
 import irc.client
 import random
 import sqlite3
-import atexit
 import configparser
 import time
 import collections
