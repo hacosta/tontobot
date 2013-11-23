@@ -50,7 +50,7 @@ class TontoBot(irc.bot.SingleServerIRCBot):
 			self.sqlcon.execute('CREATE TABLE IF NOT EXISTS ' + self.URL_TABLE)
 		except:
 			logging.exception("Unable to open URL database!")
-			sys.exit(1)
+			raise
 	
 	def on_welcome(self, connection, event):
 		logging.debug("joining %s", self.channel)
