@@ -8,6 +8,7 @@ import argparse
 import itertools
 import logging
 import urllib.request
+import urllib.parse
 import lxml.html
 import irc.bot
 import irc.client
@@ -28,21 +29,46 @@ DEFAULTS = {
 def get_urls(s):
 	return re.findall('http[s]?://(?:[a-zA-Z]|[0-9]|[$-_@.&+]|[!*\(\),]|(?:%[0-9a-fA-F][0-9a-fA-F]))+', s)
 
-class TontoBot(irc.bot.SingleServerIRCBot):
+class HTTPManager():
 	FETCH_MAX = 20 * 1024
-	URL_MAXLEN = 60 # If url is longer than this, tontobot will provide a tinified version of the url
-	MSG_MAX = 140
-	FAIL_MSGS = [':(', '):', '?', 'WAT', 'No pos no', 'link no worky', 'chupa limon']
-	URL_TABLE = '''urls (
-					url			TEXT PRIMARY KEY	NOT NULL,
-					title		TEXT				NOT NULL,
-					user		TEXT				NOT NULL,
-					time		TEXT				NOT NULL);'''
+	HEADER = {
+		'User-agent': 'Mozilla/5.0 (X11; U; Linux i686) Gecko/20071127 Firefox/2.0.0.11'
+	}
 
-	def __init__(self, serverspec, channel, nickname, realname, dbpath='./seenurls.db'):
-		irc.bot.SingleServerIRCBot.__init__(self, [serverspec], nickname, realname)
-		self.channel = channel
-		logging.info("nickname=[%s] realname=[%s] channel=[%s]" % (nickname, realname, channel))
+	def urlopen(self, url, maxbytes=FETCH_MAX):
+		req = urllib.request.Request(url, headers=self.HEADER)
+		fd = urllib.request.urlopen(req)
+		return fd.read(maxbytes)
+
+	def tinify(self, url):
+		return self.urlopen('http://tinyurl.com/api-create.php?url=%s' % url).decode('utf-8')
+
+	def paste(self, data):
+		# pinchetontobot1337:pinchetontobot1337@sharklasers.com
+		url = 'http://pastebin.com/api/api_post.php'
+		ascii_params = {
+			'api_paste_private': '1', # unlisted post
+			'api_paste_name': 'Tontobot',
+			'api_paste_expire_date': '1M', # 1 month lifespan
+			'api_dev_key':'c41f72ec503dced6de5422c00a792c44',
+			'api_option':'paste',
+			'api_paste_code': data
+		}
+		urlencoded_params = urllib.parse.urlencode(ascii_params)
+		binary_params = urlencoded_params.encode('utf-8')
+		fd = urllib.request.urlopen(url, binary_params)
+		url = fd.read()
+		return url.decode('utf-8')
+
+class SQLManager():
+	URL_TABLE = '''urls (
+		url TEXT PRIMARY KEY NOT NULL,
+		title TEXT NOT NULL,
+		user TEXT NOT NULL,
+		time TEXT NOT NULL
+	);'''
+	
+	def __init__(self, dbpath='./seenurls.db'):
 		try:
 			self.sqlcon = sqlite3.connect(dbpath)
 			self.sqlcon.row_factory = sqlite3.Row
@@ -51,6 +77,34 @@ class TontoBot(irc.bot.SingleServerIRCBot):
 		except:
 			logging.exception("Unable to open URL database!")
 			raise
+
+	def getUrlPoster(self, url):
+		self.sqlcur.execute('SELECT user FROM urls WHERE url = ?', (url,))
+		sqlrow = self.sqlcur.fetchone()
+		if sqlrow is not None:
+			return sqlrow['user']
+		return None
+
+	def insertUrlMetadata(self, url, title, user, time):
+		self.sqlcur.execute('INSERT INTO urls VALUES (?,?,?,?)', (url, title, user, time.time(),))
+		self.sqlcon.commit()
+
+	def getLastNUrls(self, n):
+		self.sqlcur.execute('SELECT * FROM urls ORDER BY time DESC LIMIT ?', (n,))
+		sqlrows = self.sqlcur.fetchall()
+		return sqlrows
+
+class TontoBot(irc.bot.SingleServerIRCBot):
+	URL_MAXLEN = 60 # If url is longer than this, tontobot will request a tinified version of the url
+	MSG_MAX = 140
+	FAIL_MSGS = [':(', '):', '?', 'WAT', 'No pos no', 'link no worky', 'chupa limon']
+
+	def __init__(self, serverspec, channel, nickname, realname):
+		irc.bot.SingleServerIRCBot.__init__(self, [serverspec], nickname, realname)
+		self.channel = channel
+		logging.info("nickname=[%s] realname=[%s] channel=[%s]" % (nickname, realname, channel))
+		self.httpm = HTTPManager()
+		self.sqlm = SQLManager()
 	
 	def on_welcome(self, connection, event):
 		logging.debug("joining %s", self.channel)
@@ -64,14 +118,6 @@ class TontoBot(irc.bot.SingleServerIRCBot):
 			msg = msg[:self.MSG_MAX]
 			logging.info("truncated msg: %s" % msg)
 		connection.privmsg(self.channel, msg)
-
-	def urlopen(self, url, maxbytes=FETCH_MAX):
-		req = urllib.request.Request(url, headers={'User-agent': 'Mozilla/5.0 (X11; U; Linux i686) Gecko/20071127 Firefox/2.0.0.11'})
-		fd = urllib.request.urlopen(req)
-		return fd.read(maxbytes)
-
-	def tinify(self, url):
-		return self.urlopen('http://tinyurl.com/api-create.php?url=%s' % url).decode('utf-8')
 
 	def masca(self):
 		openers = ('en serio que', 'neta que', 'al chile', '')
@@ -127,11 +173,37 @@ class TontoBot(irc.bot.SingleServerIRCBot):
 
 		raise Exception("No man page found")
 
+	def last(self, line):
+		"""Gets the last n URLs' metadata"""
+		argv = line.split()
+		if len(argv) == 2:
+			n = argv[1].strip()
+		else:
+			raise Exception("format: !last n")
+
+		try:
+			n = int(n)
+		except ValueError:
+			logging.error("last n: %s" % n)
+			raise Exception("n must be an integer")
+		
+		sqlrows = self.sqlm.getLastNUrls(n)
+		if sqlrows is not None:
+			s = ''
+			for row in sqlrows:
+				s += row['user'] + ': ' + row['url'] + '\n'
+			pasteurl = self.httpm.paste(s)
+		else:
+			raise Exception("No URLs to fetch")
+		return pasteurl
+		
 	def on_pubmsg(self, connection, event):
 		line = event.arguments[0]
 		user = event.source.split('!')[0]
 		try:
-			if line.startswith('!rtfm'):
+			if line.startswith('!last'):
+				self._sendmsg(connection, self.last(line))
+			elif line.startswith('!rtfm'):
 				self._sendmsg(connection, self.rtfm(line))
 			elif line.startswith('!masca'):
 				self._sendmsg(connection, self.masca())
@@ -145,17 +217,15 @@ class TontoBot(irc.bot.SingleServerIRCBot):
 				if url.endswith(('.jpg', '.png', '.git', '.bmp', '.pdf')):
 					logging.info('not a webpage, skipping')
 					continue
-				root = lxml.html.fromstring(self.urlopen(url))
+				root = lxml.html.fromstring(self.httpm.urlopen(url))
 				title = root.find('.//title').text
-				self.sqlcur.execute('SELECT user FROM urls WHERE url = ?', (url,))
-				sqlrow = self.sqlcur.fetchone()
-				if sqlrow is not None:
-					msg.append('[repost: %s]' % sqlrow['user'])
+				p = self.sqlm.getUrlPoster(url)
+				if p is not None:
+					msg.append('[repost: %s]' % p)
 				else:
-					self.sqlcur.execute('INSERT INTO urls VALUES (?,?,?,?)', (url, title, user, time.time(),))
-					self.sqlcon.commit()
+					self.sqlm.insertUrlMetadata(url, title, user, time)
 				if len(url) > self.URL_MAXLEN:
-					msg.append('[%s]' % self.tinify(url))
+					msg.append('[%s]' % self.httpm.tinify(url))
 				msg.append(title)
 				self._sendmsg(connection, ' '.join(msg))
 			except:
