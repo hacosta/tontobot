@@ -29,7 +29,7 @@ DEFAULTS = {
 def get_urls(s):
 	return re.findall('http[s]?://(?:[a-zA-Z]|[0-9]|[$-_@.&+]|[!*\(\),]|(?:%[0-9a-fA-F][0-9a-fA-F]))+', s)
 
-class HTTPManager():
+class HttpManager():
 	FETCH_MAX = 20 * 1024
 	HEADER = {
 		'User-agent': 'Mozilla/5.0 (X11; U; Linux i686) Gecko/20071127 Firefox/2.0.0.11'
@@ -50,8 +50,8 @@ class HTTPManager():
 			'api_paste_private': '1', # unlisted post
 			'api_paste_name': 'Tontobot',
 			'api_paste_expire_date': '1M', # 1 month lifespan
-			'api_dev_key':'c41f72ec503dced6de5422c00a792c44',
-			'api_option':'paste',
+			'api_dev_key': 'c41f72ec503dced6de5422c00a792c44',
+			'api_option': 'paste',
 			'api_paste_code': data
 		}
 		urlencoded_params = urllib.parse.urlencode(ascii_params)
@@ -60,7 +60,7 @@ class HTTPManager():
 		url = fd.read()
 		return url.decode('utf-8')
 
-class SQLManager():
+class SqlManager():
 	URL_TABLE = '''urls (
 		url TEXT PRIMARY KEY NOT NULL,
 		title TEXT NOT NULL,
@@ -103,8 +103,8 @@ class TontoBot(irc.bot.SingleServerIRCBot):
 		irc.bot.SingleServerIRCBot.__init__(self, [serverspec], nickname, realname)
 		self.channel = channel
 		logging.info("nickname=[%s] realname=[%s] channel=[%s]" % (nickname, realname, channel))
-		self.httpm = HTTPManager()
-		self.sqlm = SQLManager()
+		self.httpm = HttpManager()
+		self.sqlm = SqlManager()
 	
 	def on_welcome(self, connection, event):
 		logging.debug("joining %s", self.channel)
