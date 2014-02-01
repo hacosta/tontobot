@@ -78,18 +78,18 @@ class SqlManager():
 			logging.exception("Unable to open URL database!")
 			raise
 
-	def getUrlPoster(self, url):
+	def get_url_poster(self, url):
 		self.sqlcur.execute('SELECT user FROM urls WHERE url = ?', (url,))
 		sqlrow = self.sqlcur.fetchone()
 		if sqlrow is not None:
 			return sqlrow['user']
 		return None
 
-	def insertUrlMetadata(self, url, title, user, time):
+	def insert_url_metadata(self, url, title, user, time):
 		self.sqlcur.execute('INSERT INTO urls VALUES (?,?,?,?)', (url, title, user, time.time(),))
 		self.sqlcon.commit()
 
-	def getLastNUrls(self, n):
+	def get_last_n_urls(self, n):
 		self.sqlcur.execute('SELECT * FROM urls ORDER BY time DESC LIMIT ?', (n,))
 		sqlrows = self.sqlcur.fetchall()
 		return sqlrows
@@ -187,7 +187,7 @@ class TontoBot(irc.bot.SingleServerIRCBot):
 			logging.error("last n: %s" % n)
 			raise Exception("n must be an integer")
 		
-		sqlrows = self.sqlm.getLastNUrls(n)
+		sqlrows = self.sqlm.get_last_n_urls(n)
 		if sqlrows is not None:
 			s = ''
 			for row in sqlrows:
@@ -219,11 +219,11 @@ class TontoBot(irc.bot.SingleServerIRCBot):
 					continue
 				root = lxml.html.fromstring(self.httpm.urlopen(url))
 				title = root.find('.//title').text
-				p = self.sqlm.getUrlPoster(url)
+				p = self.sqlm.get_url_poster(url)
 				if p is not None:
 					msg.append('[repost: %s]' % p)
 				else:
-					self.sqlm.insertUrlMetadata(url, title, user, time)
+					self.sqlm.insert_url_metadata(url, title, user, time)
 				if len(url) > self.URL_MAXLEN:
 					msg.append('[%s]' % self.httpm.tinify(url))
 				msg.append(title)
