@@ -199,25 +199,28 @@ class TontoBot(irc.bot.SingleServerIRCBot):
 		return pasteurl
 	def logs(self,line):
 		argv = line.split()
-		if len(argv) == 2:
-			if len(argv[1]) == 8:
-				year = argv[1][:4]
-				month = argv[1][4:6]
-				day = argv[1][-2:]
-				try:
-					inputDate = datetime.datetime(int(year),int(month),int(day))
-					datedelta = datetime.datetime.today() - inputDate
-				except ValueError:
-					return "that date is not valid!"
-				if datedelta > datetime.timedelta(microseconds=1):
-					logurl = "http://irclogs.gultec.org/gultec-"+year+"-"+month+"-"+day
-					return logurl
+		if len(argv) < 2:
+		    return "http://irclogs.gultec.org/gultec-"+datetime.datetime.today().strftime("%Y-%m-%d")
+		else:
+			if len(argv) == 2:
+				if len(argv[1]) == 8:
+					year = argv[1][:4]
+					month = argv[1][4:6]
+					day = argv[1][-2:]
+					try:
+						inputDate = datetime.datetime(int(year),int(month),int(day))
+						datedelta = datetime.datetime.today() - inputDate
+					except ValueError:
+						return "that date is not valid!"
+					if datedelta > datetime.timedelta(microseconds=1):
+						logurl = "http://irclogs.gultec.org/gultec-"+year+"-"+month+"-"+day
+						return logurl
+					else:
+						return "back to the future!"
 				else:
-					return "back to the future!"
+					return "usage: !logs yyyymmdd"
 			else:
 				return "usage: !logs yyyymmdd"
-		else:
-			return "usage: !logs yyyymmdd"
 		
 	def on_pubmsg(self, connection, event):
 		line = event.arguments[0]
