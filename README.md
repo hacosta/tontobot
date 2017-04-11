@@ -2,8 +2,8 @@
 
 A very dumb IRC bot meant for users of Freenode/#GULTec.
 
-### Copyright (c) 2017 @hacosta
-### License: [CC0 / Public Domain](https://creativecommons.org/publicdomain/zero/1.0/)
+### License
+**No Rights Reserved**: interchangeably, [CC0 / Public Domain](https://creativecommons.org/publicdomain/zero/1.0/) or [Unlicense](http://unlicense.org/).
 
 ## Features
 * URLs shortening, preview, and tracking.
