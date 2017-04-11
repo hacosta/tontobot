@@ -121,10 +121,10 @@ class TontoBot(irc.bot.SingleServerIRCBot):
 		connection.privmsg(self.channel, msg)
 
 	def masca(self):
-		openers = ('en serio que', 'neta que', 'al chile', '')
-		haters = ('me caga', 'me re-caga', 'me molesta un chingo', 'está todo mal', 'me emputa', 'está todo gacho', 'es lo más ojete de la vida', 'es bien tonto')
-		closers = ('que fecal fue presidente', 'que no uses C', 'que uses camelCase', 'que existas', 'que un lenguaje no tenga apuntadores', 'que amlo perdió', '')
-		standalones = ('Viva el EZLN', '¬¬', '¡Viva la revolución!', 'Estás todo gacho', 'Vamos por cheve')
+		openers = ('en serio que', 'neta que', 'al chile', 'chale,', 'órale', 'maldito', 'deja tú,', 'de hecho,', '')
+		haters = ('me caga', 'me re-caga', 'me molesta un chingo', 'está todo mal', 'me emputa', 'está todo gacho', 'es lo más ojete de la vida', 'es bien tonto', 'se mamó', 'qué triste', 'está feíto', 'me preocupa', 'nunca voy a entender', 'apesta', 'está todo turbio', 'me sorprende', 'qué pedo', 'es bien difícil', 'el problema es', 'no es trivial')
+		closers = ('que fecal fue presidente', 'que no uses C', 'que uses camelCase', 'que existas', 'que un lenguaje no tenga apuntadores', 'que amlo perdió', 'javascript', 'el window manager de osx', 'scrum', 'tener tantas juntas', 'EPN', 'el trompetas', 'systemd', 'lennart', 'que todo son contenedores', 'que hay mil manejadores de paquetes incompatibles', 'todo siempre', '"la nube"', 'pulse', 'visual studio', 'java', 'tu startup', 'windows', 'osx', 'android', 'tu distribución', 'tu elección de editor')
+		standalones = ('Viva el EZLN', '¬¬', '¡Viva la revolución!', 'Estás todo gacho', 'Vamos por cheve', 'En serio que odio a la gente', 'Es muy confuso todo', 'Estás mal', 'Chale', 'Ya valió madre', 'No tiene sentido', 'Ni de pedo', 'Woop', 'Interesante', '¿Es neta?', 'Bien ahí', 'Eres una pésima persona', 'Sabiduría pura', 'Bleeeh', 'No te creo nada', 'Agarras caca, la avientas a la computadora y la masajeas.', 'wtf?', 'Brujería', 'Lo ví en turumbulr', 'el mundo no se acaba, sólo se empeora', 'Apestas', 'Están jodidos', 'Me parece impráctico pero impresionante a la vez', 'Estás pero re mal de tu cabeza', 'Está mal por definición', 'Nos cae mal por feo', 'Pfft', 'Ese cagón de Stallman tiene razón', '¡PUM!')
 
 		composed_len = len(openers) * len(haters) * len(closers)
 		totlen = composed_len + len(standalones)
